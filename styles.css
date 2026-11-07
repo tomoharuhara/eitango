@@ -73,6 +73,9 @@ label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
 .choices{display:grid; gap:10px}
 .choice{text-align:left; padding:13px 14px; line-height:1.45; white-space:normal}
 .choice .k{display:inline-block; width:1.5em; color:var(--muted); font-weight:700}
+.choice .sub{display:block; margin:3px 0 0 1.5em; font-size:.86rem; color:var(--muted); font-weight:400}
+/* 回答後の選択肢は読んで覚えるためのものなので、薄くしない */
+.choice:disabled{opacity:1; cursor:default}
 .choice.correct{background:var(--ok-weak); border-color:var(--ok); color:var(--fg)}
 .choice.wrong{background:var(--ng-weak); border-color:var(--ng); color:var(--fg)}
 .feedback{margin-top:14px; text-align:center; font-weight:700}

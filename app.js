@@ -56,6 +56,21 @@
   var WORD_BY_EN = {};
   WORDS.forEach(function (word) { WORD_BY_EN[word.en] = word; });
 
+  /** 訳から単語データを引くための索引（選択肢に反対側を並べて書くため）。 */
+  var WORD_BY_JA = {};
+  WORDS.forEach(function (word) { WORD_BY_JA[word.ja] = word; });
+
+  /**
+   * 選択肢に書いてある文字列から、その語の反対側を返す。
+   * 意味を選ぶ問題なら英単語、単語を選ぶ問題なら訳。
+   * 単語リストには同じ英単語も同じ訳もないので、文字列から一意に引ける。
+   */
+  function choiceCounterpart(text, format) {
+    var word = format === ASK_MEANING ? WORD_BY_JA[text] : WORD_BY_EN[text];
+    if (!word) return '';
+    return format === ASK_MEANING ? word.en : word.ja;
+  }
+
   /* ------------------------------------------------------------ 品詞 */
 
   /*
@@ -817,9 +832,17 @@
       var classes = 'choice';
       if (answered && index === question.answerIndex) classes += ' correct';
       else if (answered && index === question.chosenIndex) classes += ' wrong';
+
+      // 回答した後は、選ばなかった選択肢にも反対側を書き足す。
+      // 外した 3 語もその場で覚えられるようにするため。
+      var counterpart = answered ? choiceCounterpart(choice, question.format) : '';
+      var sub = counterpart
+        ? '<span class="sub">' + escapeHtml(counterpart) + '</span>'
+        : '';
+
       return '<button class="' + classes + '" data-choice="' + index + '"' +
           (answered ? ' disabled' : '') + '>' +
-        '<span class="k">' + (index + 1) + '</span>' + escapeHtml(choice) +
+        '<span class="k">' + (index + 1) + '</span>' + escapeHtml(choice) + sub +
       '</button>';
     }).join('') + '</div>';
   }
