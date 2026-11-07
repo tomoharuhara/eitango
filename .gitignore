@@ -1,0 +1,9 @@
+# 公開するのはアプリ本体だけ。
+# 元の PDF、紙のテスト、生成スクリプト、パンフレットは GitHub に上げない。
+*
+!.gitignore
+!index.html
+!app.js
+!styles.css
+!words.js
+!README.md

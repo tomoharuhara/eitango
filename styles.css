@@ -1,0 +1,124 @@
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --fg:#1d2128; --muted:#6b7280;
+  --line:#e3e6ea; --accent:#2f6df6; --accent-weak:#e8efff;
+  --ok:#17935a; --ok-weak:#e4f6ed; --ng:#d8413a; --ng-weak:#fdeceb;
+  --warn:#b7791f; --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#14161a; --card:#1d2024; --fg:#e8eaed; --muted:#9aa3af;
+    --line:#2c3037; --accent:#6f9bff; --accent-weak:#1d2a44;
+    --ok:#4ad295; --ok-weak:#17301f; --ng:#ff7b73; --ng-weak:#331a1a;
+    --warn:#e0b063; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+    --bg:#14161a; --card:#1d2024; --fg:#e8eaed; --muted:#9aa3af;
+    --line:#2c3037; --accent:#6f9bff; --accent-weak:#1d2a44;
+    --ok:#4ad295; --ok-weak:#17301f; --ng:#ff7b73; --ng-weak:#331a1a;
+    --warn:#e0b063; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Segoe UI",sans-serif;
+  line-height:1.6; -webkit-text-size-adjust:100%;
+}
+#app{max-width:640px; margin:0 auto; padding:20px 16px 72px}
+h1{font-size:1.3rem; margin:0 0 4px}
+h2{font-size:1.05rem; margin:0 0 10px}
+p{margin:0 0 10px}
+.muted{color:var(--muted); font-size:.85rem}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:14px}
+.row{display:flex; gap:10px; align-items:center}
+.row.between{justify-content:space-between}
+.grow{flex:1}
+button{font:inherit; cursor:pointer; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); padding:11px 14px; transition:.12s}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45; cursor:not-allowed}
+.btn-primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.btn-primary:hover:not(:disabled){filter:brightness(1.06)}
+.btn-ghost{background:transparent}
+.btn-sm{padding:7px 11px; font-size:.85rem}
+.btn-block{display:block; width:100%}
+input{font:inherit; width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--fg)}
+label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
+.err{color:var(--ng); font-size:.85rem; margin-top:8px}
+
+/* header */
+.appbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px}
+.appbar .who{font-size:.85rem; color:var(--muted)}
+.badge{display:inline-block; font-size:.72rem; padding:2px 8px; border-radius:999px; background:var(--accent-weak); color:var(--accent); font-weight:600}
+
+/* stage list */
+.stage{display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--line)}
+.stage:first-child{border-top:0}
+.stage .num{flex:0 0 28px; height:28px; border-radius:50%; display:grid; place-items:center; font-size:.8rem; font-weight:700; background:var(--bg); border:1px solid var(--line); color:var(--muted)}
+.stage.done .num{background:var(--ok-weak); border-color:transparent; color:var(--ok)}
+.stage.active .num{background:var(--accent); border-color:transparent; color:#fff}
+.stage .title{font-weight:600}
+.stage .sub{font-size:.82rem; color:var(--muted)}
+.stage .act{flex:0 0 auto}
+
+/* quiz */
+.qhead{display:flex; justify-content:space-between; align-items:center; font-size:.85rem; color:var(--muted); margin-bottom:8px}
+.bar{height:6px; background:var(--line); border-radius:99px; overflow:hidden; margin-bottom:18px}
+.bar > i{display:block; height:100%; background:var(--accent); transition:width .2s}
+.prompt{text-align:center; padding:22px 10px 26px}
+.prompt .word{font-size:2rem; font-weight:700; letter-spacing:.01em; word-break:break-word}
+.prompt .word.ja{font-size:1.4rem}
+.prompt .kind{font-size:.78rem; color:var(--muted); margin-bottom:8px}
+.choices{display:grid; gap:10px}
+.choice{text-align:left; padding:13px 14px; line-height:1.45; white-space:normal}
+.choice .k{display:inline-block; width:1.5em; color:var(--muted); font-weight:700}
+.choice.correct{background:var(--ok-weak); border-color:var(--ok); color:var(--fg)}
+.choice.wrong{background:var(--ng-weak); border-color:var(--ng); color:var(--fg)}
+.feedback{margin-top:14px; text-align:center; font-weight:700}
+.feedback.ok{color:var(--ok)}
+.feedback.ng{color:var(--ng)}
+
+/* score */
+.score{display:flex; gap:16px; justify-content:center; text-align:center; margin:6px 0 4px}
+.score div span{display:block; font-size:1.6rem; font-weight:700}
+.score div small{color:var(--muted); font-size:.78rem}
+
+/* wordbook */
+.wb{border-top:1px solid var(--line)}
+.wb-item{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); align-items:baseline}
+.wb-item .mk{flex:0 0 1.3em; font-weight:700}
+.wb-item .mk.ok{color:var(--ok)}
+.wb-item .mk.ng{color:var(--ng)}
+.wb-item .en{font-weight:650; min-width:7.5em}
+.wb-item .ja{flex:1; font-size:.92rem}
+.wb-item .pg{flex:0 0 auto; font-size:.72rem; color:var(--muted)}
+.count-pill{flex:0 0 auto; font-size:.74rem; font-weight:700; color:var(--ng); background:var(--ng-weak); padding:1px 8px; border-radius:999px}
+.tabs{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}
+.tabs button{padding:7px 12px; font-size:.85rem}
+.tabs button[aria-current="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+.empty{text-align:center; color:var(--muted); padding:26px 0}
+.note{background:var(--accent-weak); border:1px solid transparent; color:var(--fg); border-radius:10px; padding:10px 12px; font-size:.85rem; margin-bottom:12px}
+.hist{font-size:.85rem}
+.hist td{padding:5px 8px; border-top:1px solid var(--line)}
+.hist table{width:100%; border-collapse:collapse}
+
+/* ------------------------------------------------------------------ 余白など
+   JS 側にインラインスタイルを書かずに済むよう、用途の分かる名前で用意する */
+.stack-top      { margin-top: 14px }
+.stack-top-sm   { margin-top: 8px }
+.stack-top-xs   { margin-top: 4px }
+.center         { text-align: center }
+.card-head      { margin-bottom: 6px }
+.card-head h2   { margin: 0 }
+.user-row       { padding: 6px 0 }
+.hint           { text-align: center; margin-top: 14px }
+
+/* 保存できない端末に出す警告 */
+.warn-box{background:var(--ng-weak); border:1px solid var(--ng); color:var(--fg); border-radius:10px; padding:11px 13px; font-size:.85rem; margin-bottom:12px; line-height:1.55}
+.warn-box strong{display:block; color:var(--ng); margin-bottom:2px}
+
+/* 引き継ぎ画面 */
+textarea.code{font:inherit; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.75rem; width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--fg); resize:vertical; word-break:break-all}
+.check{display:flex; align-items:center; gap:7px; font-size:.85rem; color:var(--fg); margin:10px 0 0}
+.check input{width:auto; margin:0}
