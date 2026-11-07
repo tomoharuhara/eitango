@@ -4,12 +4,26 @@
 
 ## 使い方
 
-公開版： https://claude.ai/artifact/XW7jddn5Qs3hXNYtAU6vrq
+**配布用 URL： https://tomoharuhara.github.io/eitango/**
 
-このフォルダの中身をそのまま Web ページとして公開したものです。
-生徒に配るときはこの URL を伝えます。ただし**既定では非公開**なので、
-ページの Share メニューから共有範囲を広げないと本人以外は開けません。
-公開版を直すときは、このフォルダのファイルを直してから公開し直します。
+GitHub Pages で公開しています（リポジトリ: `tomoharuhara/eitango`）。
+生徒に配るときはこの URL を伝えます。パンフレットと QR コードもこの URL です。
+
+直したときは、このフォルダで変更をコミットして push すれば、
+1〜2 分で公開中のページも入れ替わります。
+
+```bash
+cd "/Volumes/BUFFALO HDD/英単語アプリ"
+git add -A && git commit -m "説明" && git push
+```
+
+`.gitignore` で公開するファイルを 4 つに絞ってあります（`index.html` `app.js`
+`styles.css` `words.js`）。`単語テスト.pdf` や `300問テスト` は公開されません。
+
+以前の公開先（Claude のアーティファクト）は
+https://claude.ai/artifact/XW7jddn5Qs3hXNYtAU6vrq に残してあります。
+すでに使い始めた生徒は、そちらの「引き継ぎ」タブでコードをコピーし、
+新しい URL で取り込めば続きから再開できます。
 
 手元で動かす場合は `index.html` をダブルクリックしてブラウザで開くだけです。
 うまく動かない場合はローカルサーバー経由で開いてください。
