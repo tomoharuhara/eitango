@@ -84,11 +84,14 @@
    *   どれでもない                 → 名詞
    * 動詞はさらに「〜」が付くかどうかで分ける。付く語だけを並べないと、
    * 「〜」の有無で答えが浮いてしまう。
+   *
+   * 前置詞・接続詞（via、despite、whereas など）も意味が「〜」で始まるため、
+   * 形だけでは動詞と区別できない。これは下の表で名指しして別の区分にする。
    */
 
   /**
-   * 英語では形容詞・副詞・名詞なのに、日本語にすると動詞の形になる語。
-   * 上の規則では拾えないので、ここに書き出しておく。
+   * 英語では形容詞・副詞・名詞・前置詞・接続詞なのに、日本語にすると
+   * 動詞の形になる語。上の規則では拾えないので、ここに書き出しておく。
    */
   var POS_EXCEPTIONS = {
     bilingual: '形容詞', brilliant: '形容詞', widespread: '形容詞', visible: '形容詞',
@@ -97,7 +100,15 @@
     probably: '副詞', nevertheless: '副詞', altogether: '副詞', utterly: '副詞',
     necessarily: '副詞',
     laughter: '名詞', behavior: '名詞', curse: '名詞', junk: '名詞', drought: '名詞',
-    trap: '名詞'
+    trap: '名詞',
+
+    // 前置詞・接続詞。意味が「〜」で始まるので形だけでは動詞と見分けがつかない。
+    // 「〜を決心する」の中に「〜経由で」が混ざらないよう、名指しで分ける。
+    throughout: '前置詞/接続詞', unlike: '前置詞/接続詞', besides: '前置詞/接続詞',
+    beyond: '前置詞/接続詞', within: '前置詞/接続詞', unless: '前置詞/接続詞',
+    except: '前置詞/接続詞', whether: '前置詞/接続詞', despite: '前置詞/接続詞',
+    beneath: '前置詞/接続詞', whereas: '前置詞/接続詞', via: '前置詞/接続詞',
+    owing: '前置詞/接続詞', lest: '前置詞/接続詞'
   };
 
   var NOMINALIZER = /(もの|こと|ひと|ところ|とき|人|所|物|事)$/;
@@ -261,6 +272,20 @@
       usedTexts[text] = true;
       usedSenses[sense] = true;
       pickedIndexes.push(candidate);
+    }
+
+    // 区分の語数が足りず 4 つ埋まらなかったときは、全体から埋める。
+    // 選択肢が 3 つしかない問題が出るよりはましなので。
+    attempts = 0;
+    while (pickedIndexes.length < CHOICE_COUNT && attempts++ < 800) {
+      var spare = Math.floor(Math.random() * WORDS.length);
+      if (spare === wordIndex) continue;
+      var spareText = choiceTextOf(WORDS[spare], format);
+      var spareSense = firstSense(WORDS[spare].ja);
+      if (usedTexts[spareText] || usedSenses[spareSense]) continue;
+      usedTexts[spareText] = true;
+      usedSenses[spareSense] = true;
+      pickedIndexes.push(spare);
     }
     shuffle(pickedIndexes);
 
