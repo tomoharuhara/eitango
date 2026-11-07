@@ -777,7 +777,7 @@
       quizProgress(questionIndex, test.questions.length, question) +
       quizPrompt(question, word) +
       choiceButtons(question, answered) +
-      (answered ? feedback(question, word, isLast) : '<p class="muted hint">キーボードの 1〜4 でも回答できます</p>');
+      (answered ? feedback(question, isLast) : '<p class="muted hint">キーボードの 1〜4 でも回答できます</p>');
 
     bindNav();
     onClickWithValue('data-choice', function (value) {
@@ -847,11 +847,10 @@
     }).join('') + '</div>';
   }
 
-  function feedback(question, word, isLast) {
+  function feedback(question, isLast) {
     var correct = question.chosenIndex === question.answerIndex;
-    var message = correct
-      ? '◯ 正解'
-      : '✗ 不正解 — ' + escapeHtml(word.en) + '：' + escapeHtml(word.ja);
+    // 正解の単語と意味は選択肢そのものに出ているので、ここでは繰り返さない
+    var message = correct ? '◯ 正解' : '✗ 不正解';
     return '<div class="feedback ' + (correct ? 'ok' : 'ng') + '">' + message + '</div>' +
       '<button class="btn-primary btn-block stack-top" id="nextQuestion">' +
         (isLast ? '結果を見る' : '次の問題へ') +
