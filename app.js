@@ -446,6 +446,38 @@
     }).join('') + '</div>';
   }
 
+  /**
+   * Enter で送信する。ただし日本語入力の「変換の確定」は送信しない。
+   *
+   * ローマ字 → スペースで変換 → Enter で確定、という流れの最後の Enter まで
+   * 送信として扱うと、ニックネームを打ち終える前に次の画面へ進んでしまう。
+   * 変換中かどうかの見分け方はブラウザによって違うので、両方に備える。
+   *   Chrome 系 … 確定の Enter 自体に isComposing が立つ
+   *   Safari 系 … 先に compositionend が起きてから Enter が来る（isComposing は立たない）
+   * 後者は直前に変換が終わったかどうかで見分ける。人が押し直すには短すぎる間隔なので、
+   * 本当に送信したい 2 回目の Enter を取りこぼすことはない。
+   */
+  var COMPOSITION_GRACE_MS = 50;
+
+  function bindEnterToSubmit(input, submit) {
+    var composing = false;
+    var composedAt = -Infinity;
+
+    input.addEventListener('compositionstart', function () {
+      composing = true;
+    });
+    input.addEventListener('compositionend', function (event) {
+      composing = false;
+      composedAt = event.timeStamp;
+    });
+    input.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter') return;
+      if (composing || event.isComposing || event.keyCode === 229) return;
+      if (event.timeStamp - composedAt < COMPOSITION_GRACE_MS) return;
+      submit();
+    });
+  }
+
   function bindLoginForm(users) {
     var emailInput = document.getElementById('email');
     var nicknameInput = document.getElementById('nickname');
@@ -472,9 +504,7 @@
 
     document.getElementById('startButton').addEventListener('click', submit);
     [emailInput, nicknameInput].forEach(function (input) {
-      input.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') submit();
-      });
+      bindEnterToSubmit(input, submit);
     });
     onClickWithValue('data-login', function (email) {
       login(email, users[email].nickname);
