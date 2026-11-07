@@ -35,7 +35,6 @@
 
   var QUESTIONS_PER_TEST = 30;             // 1 日に出す語数。一巡の最後の日だけ、余った語数になる
   var CHOICE_COUNT = 4;                    // 選択肢の数
-  var AUTO_ADVANCE_MS = 800;               // 正解したとき自動で次の問題へ進むまでの時間
 
   /** 出題形式。英単語を見せて意味を選ばせるか、その逆か。 */
   var ASK_MEANING = 'askMeaning';
@@ -56,6 +55,63 @@
   /** 英単語から単語データを引くための索引（間違い回数は英単語をキーに保存するため）。 */
   var WORD_BY_EN = {};
   WORDS.forEach(function (word) { WORD_BY_EN[word.en] = word; });
+
+  /* ------------------------------------------------------------ 品詞 */
+
+  /*
+   * 4 択は同じ品詞でそろえる。品詞が混ざると、意味の形を見るだけで答えが
+   * 絞れてしまうため（動詞の問題に名詞の選択肢が 3 つ並ぶ、など）。
+   *
+   * 品詞は意味の書き方から見分ける。
+   *   「〜を」「〜に」で始まる     → 動詞
+   *   「〜な」「〜の」「〜い」で終わる → 形容詞
+   *   「〜に」「〜と」で終わる      → 副詞
+   *   どれでもない                 → 名詞
+   * 動詞はさらに「〜」が付くかどうかで分ける。付く語だけを並べないと、
+   * 「〜」の有無で答えが浮いてしまう。
+   */
+
+  /**
+   * 英語では形容詞・副詞・名詞なのに、日本語にすると動詞の形になる語。
+   * 上の規則では拾えないので、ここに書き出しておく。
+   */
+  var POS_EXCEPTIONS = {
+    bilingual: '形容詞', brilliant: '形容詞', widespread: '形容詞', visible: '形容詞',
+    controversial: '形容詞', imaginative: '形容詞', misleading: '形容詞', punctual: '形容詞',
+    dizzy: '形容詞', intriguing: '形容詞', perpetual: '形容詞', conspicuous: '形容詞',
+    probably: '副詞', nevertheless: '副詞', altogether: '副詞', utterly: '副詞',
+    necessarily: '副詞',
+    laughter: '名詞', behavior: '名詞', curse: '名詞', junk: '名詞', drought: '名詞',
+    trap: '名詞'
+  };
+
+  var NOMINALIZER = /(もの|こと|ひと|ところ|とき|人|所|物|事)$/;
+  var ADJECTIVE_TAIL = /(できる|ている|がある|のある|にある|に値する)$/;
+  var VERB_TAIL = /[うくぐすずつぬふぶむるゆ]$/;
+
+  /** いちばん最初の語義。「〜を捨てる、放棄する」なら「〜を捨てる」。 */
+  function firstSense(ja) {
+    return ja.split('、')[0].replace(/（[^）]*）/g, '');
+  }
+
+  function partOfSpeech(word) {
+    if (POS_EXCEPTIONS[word.en]) return POS_EXCEPTIONS[word.en];
+    var sense = firstSense(word.ja);
+    if (NOMINALIZER.test(sense)) return '名詞';
+    if (sense.indexOf('〜') >= 0 && /ない$/.test(sense)) return '副詞';   // 「めったに〜ない」
+    if (ADJECTIVE_TAIL.test(sense) || /[なのいた]$/.test(sense)) return '形容詞';
+    if (sense.charAt(0) === '〜') return '動詞/〜';
+    if (/[にと]$/.test(sense)) return '副詞';
+    if (VERB_TAIL.test(sense)) return '動詞/自';
+    return '名詞';
+  }
+
+  /** 品詞ごとの単語の添字。選択肢はここから選ぶ。 */
+  var WORDS_BY_POS = {};
+  WORDS.forEach(function (word, index) {
+    var pos = partOfSpeech(word);
+    (WORDS_BY_POS[pos] = WORDS_BY_POS[pos] || []).push(index);
+  });
 
   /* ============================================================ 保存まわり */
 
@@ -169,16 +225,26 @@
    * 出題そのものの順番は PDF の掲載順のままで、ここでは入れ替えない。
    */
   function createQuestion(wordIndex, format) {
-    var alreadyUsed = {};
-    alreadyUsed[choiceTextOf(WORDS[wordIndex], format)] = true;
+    var answer = WORDS[wordIndex];
+    var sameParts = WORDS_BY_POS[partOfSpeech(answer)];
+
+    // 同じ文字列はもちろん、語義の頭が同じものも避ける。
+    // 「〜を捨てる」が 2 つ並ぶと、正解が 2 つあることになってしまう。
+    var usedTexts = {};
+    var usedSenses = {};
+    usedTexts[choiceTextOf(answer, format)] = true;
+    usedSenses[firstSense(answer.ja)] = true;
 
     var pickedIndexes = [wordIndex];
     var attempts = 0;
     while (pickedIndexes.length < CHOICE_COUNT && attempts++ < 800) {
-      var candidate = Math.floor(Math.random() * WORD_COUNT);
+      var candidate = sameParts[Math.floor(Math.random() * sameParts.length)];
+      if (candidate === wordIndex) continue;
       var text = choiceTextOf(WORDS[candidate], format);
-      if (candidate === wordIndex || alreadyUsed[text]) continue;
-      alreadyUsed[text] = true;
+      var sense = firstSense(WORDS[candidate].ja);
+      if (usedTexts[text] || usedSenses[sense]) continue;
+      usedTexts[text] = true;
+      usedSenses[sense] = true;
       pickedIndexes.push(candidate);
     }
     shuffle(pickedIndexes);
@@ -793,8 +859,7 @@
     if (!correct) recordMistake(WORDS[question.wordIndex]);
     saveProgress();
     render();
-
-    if (correct) scheduleAutoAdvance(test, screen.questionIndex);
+    // 次へ進むのは「次の問題へ」を押したときだけ。勝手には進めない。
   }
 
   function recordMistake(word) {
@@ -802,17 +867,6 @@
     record.count++;
     record.lastDate = dateKey();
     progress.mistakeCounts[word.en] = record;
-  }
-
-  /**
-   * 正解のときだけ、少し待ってから自動で次の問題へ進む。
-   * 待っている間に画面が変わっていたら何もしない。
-   */
-  function scheduleAutoAdvance(test, questionIndex) {
-    setTimeout(function () {
-      var stillOnSameQuestion = screen.name === 'quiz' && screen.questionIndex === questionIndex;
-      if (stillOnSameQuestion) goToNextQuestion(test, questionIndex);
-    }, AUTO_ADVANCE_MS);
   }
 
   function goToNextQuestion(test, questionIndex) {
