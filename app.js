@@ -425,10 +425,12 @@
         '<h2>ログイン</h2>' +
         '<label for="email">メールアドレス</label>' +
         '<input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">' +
-        '<label for="nickname">ニックネーム</label>' +
+        '<div id="loginHint" class="muted stack-top-xs" hidden></div>' +
+        '<label for="nickname">ニックネーム<span class="muted">（はじめてのときだけ）</span></label>' +
         '<input id="nickname" type="text" autocomplete="nickname" placeholder="たろう">' +
         '<div id="loginError" class="err" hidden></div>' +
-        '<p class="muted stack-top">学習データはこの端末のブラウザ内に保存されます（パスワードはありません）。</p>' +
+        '<p class="muted stack-top">2 回目からはメールアドレスだけで入れます。' +
+          '学習データはこの端末のブラウザ内に保存されます（パスワードはありません）。</p>' +
         '<button id="startButton" class="btn-primary btn-block stack-top-xs">はじめる</button>' +
       '</div>' +
       (knownEmails.length ? knownUsersCard(users, knownEmails) : '');
@@ -482,11 +484,24 @@
     var emailInput = document.getElementById('email');
     var nicknameInput = document.getElementById('nickname');
     var errorBox = document.getElementById('loginError');
+    var hintBox = document.getElementById('loginHint');
 
+    // ニックネームは埋めない。2 回目からは入力しないのがふつうだと分かるように。
     var lastEmail = localStorage.getItem(LAST_EMAIL_KEY);
-    if (lastEmail && users[lastEmail]) {
-      emailInput.value = lastEmail;
-      nicknameInput.value = users[lastEmail].nickname;
+    if (lastEmail && users[lastEmail]) emailInput.value = lastEmail;
+
+    function savedUser() {
+      return users[emailInput.value.trim().toLowerCase()] || null;
+    }
+
+    /** 打ち込んだメールアドレスが登録済みかどうかを、その場で知らせる。 */
+    function updateHint() {
+      var user = savedUser();
+      hintBox.hidden = !emailInput.value.trim();
+      hintBox.textContent = user
+        ? 'おかえりなさい、' + user.nickname + ' さん。ニックネームは入れなくて大丈夫です。'
+        : 'はじめての方です。ニックネームも入れてください。';
+      nicknameInput.placeholder = user ? '変えたいときだけ入力' : 'たろう';
     }
 
     function showError(message) {
@@ -496,11 +511,21 @@
 
     function submit() {
       var email = emailInput.value.trim().toLowerCase();
-      var nickname = nicknameInput.value.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError('メールアドレスの形式が正しくありません。');
-      if (!nickname) return showError('ニックネームを入力してください。');
+      var typed = nicknameInput.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return showError('メールアドレスの形式が正しくありません。');
+      }
+
+      // 2 回目からはメールアドレスだけでよい。名前は保存してあるものを使う。
+      // 打ち込まれていればそちらを優先するので、改名もここでできる。
+      var saved = users[email];
+      var nickname = typed || (saved && saved.nickname) || '';
+      if (!nickname) return showError('はじめての方は、ニックネームも入力してください。');
       login(email, nickname);
     }
+
+    emailInput.addEventListener('input', updateHint);
+    updateHint();
 
     document.getElementById('startButton').addEventListener('click', submit);
     [emailInput, nicknameInput].forEach(function (input) {
