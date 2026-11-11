@@ -2,6 +2,10 @@
 
 `単語テスト.pdf` に載っている **2,034 語** を、**掲載順**（各ページ 左上→左下 → 右上→右下、1 ページ目から）に出題する学習アプリです。
 
+このアプリは大学受験用です。大学生・社会人向けの TOEIC 版を
+[`toeic/`](toeic/README.md) に置いてあります（TOEIC 頻出 1,200 語、しくみは同じ）。
+配布用 URL は https://tomoharuhara.github.io/eitango/toeic/ です。
+
 ## 使い方
 
 **配布用 URL： https://tomoharuhara.github.io/eitango/**

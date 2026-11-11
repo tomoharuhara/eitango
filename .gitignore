@@ -7,3 +7,12 @@
 !styles.css
 !words.js
 !README.md
+
+# TOEIC 版（社会人・大学生向け）。公開するのは同じ 4 ファイル + README。
+!toeic/
+toeic/*
+!toeic/index.html
+!toeic/app.js
+!toeic/styles.css
+!toeic/words.js
+!toeic/README.md
