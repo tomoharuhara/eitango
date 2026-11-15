@@ -21,6 +21,8 @@
  *     createdAt:     "YYYY-MM-DD"
  *   }
  *   Day  = { wordIndexes: number[], previousDate: string|null, tests: { [テストID]: Test } }
+ *          tests には 3 本のテストのほか、自由に受けるテスト（random / reviewWrong）も入る。
+ *          自由テストは受けるたびに作り直すので、引き継ぎコードには含めない。
  *   Test = { questions: Question[], finished: boolean,
  *            skipped?, noMistakes?, sourceDate?, finishedAt? }
  *   Question = { wordIndex, format, choices: string[4], answerIndex, chosenIndex: number|null }
@@ -48,8 +50,30 @@
   ];
   var TEST_IDS = TESTS.map(function (test) { return test.id; });
 
+  /**
+   * 自由に受けるテスト。上の 3 本とは別で、順番の強制はなく、1 日に何回でも受けられる。
+   *   random      … これまでに出題された単語から 20 問
+   *   reviewWrong … これまでに間違えた単語から 10 問
+   * どちらも受けるたびに作り直す（毎回ちがう組み合わせになる）。
+   * 日ごとの成績としては残さず、間違いだけが「間違えた単語」に加算される。
+   */
+  var FREE_TESTS = [
+    { id: 'random', badge: '★', title: 'ランダム復習テスト', count: 20,
+      summary: 'これまでに出題された単語から、順不同で出します。',
+      empty: '今日のテスト①を終えると受けられます。' },
+    { id: 'reviewWrong', badge: '✗', title: '間違いだけ復習テスト', count: 10,
+      summary: 'これまでに間違えた単語だけを、順不同で出します。',
+      empty: 'まだ間違えた単語がありません。' }
+  ];
+  var FREE_TEST_IDS = FREE_TESTS.map(function (test) { return test.id; });
+
+  function isFreeTest(testId) {
+    return FREE_TEST_IDS.indexOf(testId) >= 0;
+  }
+
   function testInfo(testId) {
-    return TESTS.filter(function (test) { return test.id === testId; })[0];
+    return TESTS.concat(FREE_TESTS)
+      .filter(function (test) { return test.id === testId; })[0];
   }
 
   /** 英単語から単語データを引くための索引（間違い回数は英単語をキーに保存するため）。 */
@@ -384,6 +408,69 @@
     return day.tests.mistakes;
   }
 
+  /* ------------------------------------------- 自由に受けるテスト */
+
+  /**
+   * これまでに出題された単語の添字。
+   * 「今日のテスト」を終えた日の分だけを数える。まだ受けていない今日の 30 語は、
+   * 一度も見ていないので「学習した単語」には入れない。
+   */
+  function studiedWordIndexes() {
+    var seen = {};
+    var indexes = [];
+    Object.keys(progress.days).sort().forEach(function (date) {
+      var day = progress.days[date];
+      if (!day.tests.today || !day.tests.today.finished) return;
+      (day.wordIndexes || []).forEach(function (wordIndex) {
+        if (seen[wordIndex]) return;
+        seen[wordIndex] = true;
+        indexes.push(wordIndex);
+      });
+    });
+    return indexes;
+  }
+
+  /** これまでに間違えた単語の添字。間違い回数は英単語をキーに持っているので引き直す。 */
+  function mistakeWordIndexes() {
+    var indexes = [];
+    WORDS.forEach(function (word, index) {
+      if (progress.mistakeCounts[word.en]) indexes.push(index);
+    });
+    return indexes;
+  }
+
+  function freeTestPool(testId) {
+    return testId === 'reviewWrong' ? mistakeWordIndexes() : studiedWordIndexes();
+  }
+
+  /** 自由テストの問題数。たまっている語数が足りなければ、その分だけ出す。 */
+  function freeTestSize(testId) {
+    return Math.min(testInfo(testId).count, freeTestPool(testId).length);
+  }
+
+  /**
+   * 自由テストを作る。何回でも受けられるよう、始めるたびに作り直す。
+   * 出題順も選ぶ語も毎回シャッフルするので、同じ組み合わせは続かない。
+   */
+  function buildFreeTest(day, testId) {
+    var picked = shuffle(freeTestPool(testId)).slice(0, testInfo(testId).count);
+    day.tests[testId] = { questions: createQuestions(picked), finished: false, free: true };
+    saveProgress();
+    return day.tests[testId];
+  }
+
+  /** 途中のものがあれば続きから、終わっていれば新しく作り直して始める。 */
+  function startFreeTest(testId) {
+    var day = todayRecord();
+    var test = day.tests[testId];
+    if (!test || test.finished) test = buildFreeTest(day, testId);
+    if (!test.questions.length) {
+      showScreen('home');
+      return;
+    }
+    showScreen('quiz', { testId: testId, questionIndex: null });
+  }
+
   /** 今これから受けるべきテストの ID。3 本とも終わっていれば null。 */
   function currentTestId(day) {
     if (!day.tests.today.finished) return 'today';
@@ -683,12 +770,14 @@
         TEST_IDS.map(function (id) { return testRow(day, id, nextTestId); }).join('') +
       '</div>' +
       startButtonOrFinishedNote(day, nextTestId) +
+      freeTestsCard(day) +
       statsCard(day);
 
     bindNav();
     onClickWithValue('data-start', function (testId) {
       showScreen('quiz', { testId: testId, questionIndex: null });
     });
+    onClickWithValue('data-free', startFreeTest);
     onClickWithValue('data-result', function (testId) {
       showScreen('result', { testId: testId });
     });
@@ -741,6 +830,49 @@
     return '①②で間違えた ' + test.questions.length + ' 問';
   }
 
+  /** 3 本のテストの下に並べる、自由に受けるテスト。 */
+  function freeTestsCard(day) {
+    return '<div class="card stack-top">' +
+      '<div class="row between card-head">' +
+        '<h2>自由に受けるテスト</h2>' +
+        '<span class="muted">1 日に何回でも</span>' +
+      '</div>' +
+      FREE_TESTS.map(function (info) { return freeTestRow(day, info); }).join('') +
+    '</div>';
+  }
+
+  function freeTestRow(day, info) {
+    var size = freeTestSize(info.id);
+    var test = day.tests[info.id];
+    var score = testScore(test);
+    var inProgress = test && !test.finished && test.questions.length;
+
+    var description = size ? info.summary + '（' + size + ' 問）' : info.empty;
+    if (inProgress) {
+      description += ' / 途中（第 ' + (score.answered + 1) + ' 問から）';
+    } else if (test && test.finished && score.total) {
+      description += ' / 前回 ' + score.correct + '/' + score.total + ' 正解';
+    }
+
+    var buttons = [];
+    if (test && test.finished && score.total) {
+      buttons.push('<button class="btn-sm" data-result="' + info.id + '">単語帳</button>');
+    }
+    if (size || inProgress) {
+      buttons.push('<button class="btn-primary btn-sm" data-free="' + info.id + '">' +
+        (inProgress ? '再開' : '受ける') + '</button>');
+    }
+
+    return '<div class="stage' + (inProgress ? ' active' : '') + '">' +
+      '<div class="num">' + info.badge + '</div>' +
+      '<div class="grow">' +
+        '<div class="title">' + info.title + '</div>' +
+        '<div class="sub">' + escapeHtml(description) + '</div>' +
+      '</div>' +
+      '<div class="act">' + buttons.join('') + '</div>' +
+    '</div>';
+  }
+
   function startButtonOrFinishedNote(day, nextTestId) {
     if (!nextTestId) {
       var next = progress.nextWordIndex === 0
@@ -780,8 +912,10 @@
     var testId = screen.testId;
     var test = testId === 'mistakes' ? buildMistakeTest(day) : day.tests[testId];
 
-    // 受ける順番は固定。順番違いや終了済みのテストを開こうとしたらホームに戻す。
-    if (!test || !test.questions.length || test.finished || currentTestId(day) !== testId) {
+    // 3 本のテストは受ける順番が固定。順番違いや終了済みを開こうとしたらホームに戻す。
+    // 自由テストは順番の縛りがないので、この確認から外す。
+    if (!test || !test.questions.length || test.finished ||
+        (!isFreeTest(testId) && currentTestId(day) !== testId)) {
       showScreen('home');
       return;
     }
@@ -823,9 +957,12 @@
   }
 
   function quizHeader(testId, test) {
-    var subtitle = testId === 'previous'
-      ? '<div class="who">' + formatDateJa(test.sourceDate) + 'の復習</div>'
-      : '';
+    var subtitle = '';
+    if (testId === 'previous') {
+      subtitle = '<div class="who">' + formatDateJa(test.sourceDate) + 'の復習</div>';
+    } else if (isFreeTest(testId)) {
+      subtitle = '<div class="who">自由に受けるテスト</div>';
+    }
     // テスト中こそ「保存できていない」ことに気づいてほしいので、ここにも出す
     return storageWarning() + '<div class="appbar">' +
       '<div><strong>' + testInfo(testId).title + '</strong>' + subtitle + '</div>' +
@@ -950,7 +1087,9 @@
         '<div><span>' + Math.round((score.correct / score.total) * 100) + '%</span><small>正答率</small></div>' +
         '<div><span>' + (score.total - score.correct) + '</span><small>間違い</small></div>' +
       '</div></div>' +
-      nextTestPrompt(day, nextTestId) +
+      (isFreeTest(screen.testId)
+        ? freeTestResultPrompt(screen.testId)
+        : nextTestPrompt(day, nextTestId)) +
       '<div class="card stack-top">' +
         '<h2>出題された単語（' + results.length + ' 語）</h2>' +
         '<div class="wb">' + results.map(function (result) {
@@ -965,6 +1104,17 @@
     onClickWithValue('data-start', function (testId) {
       showScreen('quiz', { testId: testId, questionIndex: null });
     });
+    onClickWithValue('data-free', startFreeTest);
+  }
+
+  /** 自由テストの結果の下。何回でも受けられるので、その場でもう一度始められる。 */
+  function freeTestResultPrompt(testId) {
+    if (!freeTestSize(testId)) {
+      return '<div class="note">おつかれさまでした。</div>';
+    }
+    return '<button class="btn-primary btn-block" data-free="' + testId + '">' +
+      'もう一度 ' + testInfo(testId).title + ' を受ける</button>' +
+      '<p class="muted center stack-top-sm">毎回ちがう組み合わせで出題されます</p>';
   }
 
   /** 同じ単語が 2 問に出た場合は 1 行にまとめ、1 つでも間違えていれば ✗ にする。 */

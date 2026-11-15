@@ -60,7 +60,7 @@ label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
 .stage.active .num{background:var(--accent); border-color:transparent; color:#fff}
 .stage .title{font-weight:600}
 .stage .sub{font-size:.82rem; color:var(--muted)}
-.stage .act{flex:0 0 auto}
+.stage .act{flex:0 0 auto; display:flex; gap:6px}
 
 /* quiz */
 .qhead{display:flex; justify-content:space-between; align-items:center; font-size:.85rem; color:var(--muted); margin-bottom:8px}
