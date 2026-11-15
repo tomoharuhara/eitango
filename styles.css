@@ -96,6 +96,36 @@ label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
 .wb-item .en{font-weight:650; min-width:7.5em}
 .wb-item .ja{flex:1; font-size:.92rem}
 .wb-item .pg{flex:0 0 auto; font-size:.72rem; color:var(--muted)}
+/* 単語一覧の通し番号。桁が増えても単語の頭がそろうよう、幅を決めておく */
+.wb-item .no{flex:0 0 3.1em; font-size:.74rem; color:var(--muted); text-align:right}
+
+/* 品詞の記号。四角の中に「動」「名」などを 1 文字入れる */
+.pos{
+  flex:0 0 auto; display:inline-grid; place-items:center;
+  width:1.45em; height:1.45em; line-height:1; border-radius:4px;
+  border:1px solid currentColor; font-size:.78rem; font-weight:700;
+  color:var(--muted); vertical-align:.08em;
+}
+/* 品詞ごとに色を変える。四角を見ただけで見分けられるように */
+.pos-verb{color:#d08a2c}
+.pos-noun{color:#3b82c4}
+.pos-adj{color:#2f9e6b}
+.pos-adv{color:#9a6cc4}
+.pos-prep{color:#6b7280}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .pos-verb{color:#e5a84f}
+  :root:not([data-theme="light"]) .pos-noun{color:#6fa9e0}
+  :root:not([data-theme="light"]) .pos-adj{color:#5cc495}
+  :root:not([data-theme="light"]) .pos-adv{color:#b18ee0}
+  :root:not([data-theme="light"]) .pos-prep{color:#9aa3af}
+}
+:root[data-theme="dark"] .pos-verb{color:#e5a84f}
+:root[data-theme="dark"] .pos-noun{color:#6fa9e0}
+:root[data-theme="dark"] .pos-adj{color:#5cc495}
+:root[data-theme="dark"] .pos-adv{color:#b18ee0}
+:root[data-theme="dark"] .pos-prep{color:#9aa3af}
+/* 選択肢の中では、意味のすぐ前に小さく置く */
+.choice .sub .pos{margin-right:6px}
 .count-pill{flex:0 0 auto; font-size:.74rem; font-weight:700; color:var(--ng); background:var(--ng-weak); padding:1px 8px; border-radius:999px}
 .tabs{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap}
 .tabs button{padding:7px 12px; font-size:.85rem}

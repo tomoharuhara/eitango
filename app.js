@@ -1,7 +1,7 @@
 /**
  * 毎日英単語テスト
  *
- * 「単語テスト.pdf」の単語を掲載順に 1 日 30 問ずつ出題し、1 日に 3 本のテストを課す。
+ * 単語を 1 番から順に 1 日 30 問ずつ出題し、1 日に 3 本のテストを課す。
  *   1. 今日のテスト          … 未出題の 30 語
  *   2. 前日のテスト（強制）  … 前回受けた日とまったく同じ 30 問
  *   3. 間違い直しテスト      … 1 と 2 で間違えた問題だけ
@@ -89,8 +89,12 @@
    * 意味を選ぶ問題なら英単語、単語を選ぶ問題なら訳。
    * 単語リストには同じ英単語も同じ訳もないので、文字列から一意に引ける。
    */
+  function choiceWord(text, format) {
+    return (format === ASK_MEANING ? WORD_BY_JA[text] : WORD_BY_EN[text]) || null;
+  }
+
   function choiceCounterpart(text, format) {
-    var word = format === ASK_MEANING ? WORD_BY_JA[text] : WORD_BY_EN[text];
+    var word = choiceWord(text, format);
     if (!word) return '';
     return format === ASK_MEANING ? word.en : word.ja;
   }
@@ -125,6 +129,14 @@
     necessarily: '副詞',
     laughter: '名詞', behavior: '名詞', curse: '名詞', junk: '名詞', drought: '名詞',
     trap: '名詞',
+
+    // 意味が「〜ている」「〜がある」で終わるため、上の規則では形容詞に見えてしまう動詞。
+    tend: '動詞/〜', afford: '動詞/〜', weigh: '動詞/〜', owe: '動詞/〜',
+    resemble: '動詞/〜', deserve: '動詞/〜',
+    // 「〜するのをいやがらない」は副詞の規則に当たるが、willing は形容詞。
+    willing: '形容詞',
+    // nor は接続詞。意味が「〜もまた〜ない」なので副詞に見えてしまう。
+    nor: '前置詞/接続詞',
 
     // 前置詞・接続詞。意味が「〜」で始まるので形だけでは動詞と見分けがつかない。
     // 「〜を決心する」の中に「〜経由で」が混ざらないよう、名指しで分ける。
@@ -162,6 +174,28 @@
     var pos = partOfSpeech(word);
     (WORDS_BY_POS[pos] = WORDS_BY_POS[pos] || []).push(index);
   });
+
+  /*
+   * 画面に出す品詞の記号。四角の中に 1 文字で出す。
+   * 選択肢を作るときの区分より粗く、自動詞・他動詞はまとめて「動」にする。
+   * 四角だけ見て分かるよう、マウスを乗せたときの説明には正式な名前を出す。
+   */
+  var POS_LABELS = {
+    '名詞':         { mark: '名', name: '名詞',          css: 'noun' },
+    '動詞/〜':      { mark: '動', name: '動詞',          css: 'verb' },
+    '動詞/自':      { mark: '動', name: '動詞',          css: 'verb' },
+    '形容詞':       { mark: '形', name: '形容詞',        css: 'adj' },
+    '副詞':         { mark: '副', name: '副詞',          css: 'adv' },
+    '前置詞/接続詞': { mark: '前', name: '前置詞・接続詞', css: 'prep' }
+  };
+
+  /** 単語の品詞を四角囲みの 1 文字で表す。分からないときは何も出さない。 */
+  function posTag(word) {
+    var label = POS_LABELS[partOfSpeech(word)];
+    if (!label) return '';
+    return '<span class="pos pos-' + label.css + '" title="' + label.name + '">' +
+      label.mark + '</span>';
+  }
 
   /* ============================================================ 保存まわり */
 
@@ -272,7 +306,7 @@
 
   /**
    * 1 問作る。ダミーの選択肢だけをランダムに選ぶ。
-   * 出題そのものの順番は PDF の掲載順のままで、ここでは入れ替えない。
+   * 出題そのものの順番は単語の番号順のままで、ここでは入れ替えない。
    */
   function createQuestion(wordIndex, format) {
     var answer = WORDS[wordIndex];
@@ -372,7 +406,7 @@
     return progress.days[today];
   }
 
-  /** 1・2 本目で間違えた問題を、PDF 掲載順に並べて返す。 */
+  /** 1・2 本目で間違えた問題を、単語の番号順に並べて返す。 */
   function mistakeQuestions(day) {
     var seen = {};
     var questions = [];
@@ -386,7 +420,7 @@
         }
       });
     });
-    // 1 本目と 2 本目の間違いが混ざるので、ここでも PDF 掲載順に並べ直す
+    // 1 本目と 2 本目の間違いが混ざるので、ここでも番号順に並べ直す
     questions.sort(function (a, b) {
       if (a.wordIndex !== b.wordIndex) return a.wordIndex - b.wordIndex;
       return a.format === b.format ? 0 : (a.format === ASK_MEANING ? -1 : 1);
@@ -590,10 +624,12 @@
   /**
    * 単語帳の 1 行。
    * leading には行頭に出すもの（◯✗ や回数のバッジ）、trailing には行末に出すものを渡す。
+   * 品詞の記号は単語のすぐ前に入れる。
    */
   function wordRow(word, leading, trailing) {
     return '<div class="wb-item">' +
       (leading || '') +
+      posTag(word) +
       '<div class="en">' + escapeHtml(word.en) + '</div>' +
       '<div class="ja">' + escapeHtml(word.ja) + '</div>' +
       (trailing || '') +
@@ -613,7 +649,7 @@
 
     root.innerHTML = storageWarning() +
       '<h1>毎日英単語テスト</h1>' +
-      '<p class="muted">「単語テスト.pdf」の ' + WORD_COUNT + ' 語を掲載順に、1 日 ' + QUESTIONS_PER_TEST + ' 問ずつ。</p>' +
+      '<p class="muted">全 ' + WORD_COUNT + ' 語を 1 番から順に、1 日 ' + QUESTIONS_PER_TEST + ' 問ずつ。</p>' +
       '<div class="card">' +
         '<h2>ログイン</h2>' +
         '<label for="email">メールアドレス</label>' +
@@ -818,7 +854,7 @@
     if (testId === 'today') {
       var first = WORDS[day.wordIndexes[0]];
       var last = WORDS[day.wordIndexes[day.wordIndexes.length - 1]];
-      return first.en + ' 〜 ' + last.en + '（PDF ' + first.page + '〜' + last.page + 'ページ）';
+      return first.en + ' 〜 ' + last.en + '（' + first.no + '〜' + last.no + ' 番）';
     }
     if (testId === 'previous') {
       if (test.skipped) return '前日のテスト記録がないため、今日はスキップされます。';
@@ -995,11 +1031,12 @@
       if (answered && index === question.answerIndex) classes += ' correct';
       else if (answered && index === question.chosenIndex) classes += ' wrong';
 
-      // 回答した後は、選ばなかった選択肢にも反対側を書き足す。
+      // 回答した後は、選ばなかった選択肢にも反対側と品詞を書き足す。
       // 外した 3 語もその場で覚えられるようにするため。
-      var counterpart = answered ? choiceCounterpart(choice, question.format) : '';
+      var word = answered ? choiceWord(choice, question.format) : null;
+      var counterpart = word ? choiceCounterpart(choice, question.format) : '';
       var sub = counterpart
-        ? '<span class="sub">' + escapeHtml(counterpart) + '</span>'
+        ? '<span class="sub">' + posTag(word) + escapeHtml(counterpart) + '</span>'
         : '';
 
       return '<button class="' + classes + '" data-choice="' + index + '"' +
@@ -1095,7 +1132,7 @@
         '<div class="wb">' + results.map(function (result) {
           var mark = '<div class="mk ' + (result.correct ? 'ok' : 'ng') + '">' +
             (result.correct ? '◯' : '✗') + '</div>';
-          return wordRow(result.word, mark, '<div class="pg">p.' + result.word.page + '</div>');
+          return wordRow(result.word, mark, '<div class="pg">No.' + result.word.no + '</div>');
         }).join('') + '</div>' +
       '</div>' +
       '<button class="btn-block stack-top-xs" data-go="home">ホームに戻る</button>';
@@ -1163,7 +1200,7 @@
           ? '<div class="wb">' + entries.map(function (en) {
               var word = WORD_BY_EN[en];
               var badge = '<div class="count-pill">' + counts[en].count + '回</div>';
-              return wordRow(word, badge, '<div class="pg">p.' + word.page + '</div>');
+              return wordRow(word, badge, '<div class="pg">No.' + word.no + '</div>');
             }).join('') + '</div>'
           : '<div class="empty">まだありません。</div>') +
       '</div>';
@@ -1172,29 +1209,47 @@
 
   /* ============================================================ 単語一覧 */
 
+  /*
+   * 単語には 1 番から WORD_COUNT 番までの通し番号（words.js の no）がついていて、
+   * 出題される順番とそろえてある。一覧はこの番号で区切って見せる。
+   * 2000 語あまりを一度に並べると、古い端末では開くまで待たされるため。
+   */
+  var LIST_CHUNK = 200;              // 一覧を何語ずつに区切るか
+
+  function listChunks() {
+    var chunks = [];
+    for (var start = 0; start < WORD_COUNT; start += LIST_CHUNK) {
+      chunks.push({ start: start, end: Math.min(start + LIST_CHUNK, WORD_COUNT) });
+    }
+    return chunks;
+  }
+
   function renderWordList() {
-    var currentPage = screen.page || 1;
-    var pages = [];
-    WORDS.forEach(function (word) {
-      if (pages.indexOf(word.page) < 0) pages.push(word.page);
-    });
-    var wordsOnPage = WORDS.filter(function (word) { return word.page === currentPage; });
+    var chunks = listChunks();
+    // 範囲外の番号で開かれても落ちないよう、端に寄せる
+    var currentIndex = Math.min(Math.max(Number(screen.chunk) || 0, 0), chunks.length - 1);
+    var chunk = chunks[currentIndex];
 
     root.innerHTML = headerBar() + navTabs('browse') +
       '<div class="card">' +
-        '<h2>単語一覧（PDF 掲載順・' + WORD_COUNT + ' 語）</h2>' +
-        '<div class="tabs">' + pages.map(function (page) {
-          var current = page === currentPage ? ' aria-current="true"' : '';
-          return '<button data-page="' + page + '"' + current + '>' + page + 'p</button>';
+        '<div class="row between card-head">' +
+          '<h2>単語一覧（全 ' + WORD_COUNT + ' 語）</h2>' +
+          '<span class="muted">' + (chunk.start + 1) + '〜' + chunk.end + ' 番</span>' +
+        '</div>' +
+        '<p class="muted">出題される順に 1 番から ' + WORD_COUNT + ' 番まで通し番号をつけています。</p>' +
+        '<div class="tabs">' + chunks.map(function (item, index) {
+          var current = index === currentIndex ? ' aria-current="true"' : '';
+          return '<button data-chunk="' + index + '"' + current + '>' +
+            (item.start + 1) + '〜' + item.end + '</button>';
         }).join('') + '</div>' +
-        '<div class="wb">' + wordsOnPage.map(function (word) {
-          return wordRow(word, '<div class="pg">' + word.no + '</div>', mistakeBadge(word));
+        '<div class="wb">' + WORDS.slice(chunk.start, chunk.end).map(function (word) {
+          return wordRow(word, '<div class="no">' + word.no + '</div>', mistakeBadge(word));
         }).join('') + '</div>' +
       '</div>';
 
     bindNav();
-    onClickWithValue('data-page', function (page) {
-      showScreen('browse', { page: Number(page) });
+    onClickWithValue('data-chunk', function (index) {
+      showScreen('browse', { chunk: Number(index) });
     });
   }
 
