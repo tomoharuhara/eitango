@@ -5,19 +5,14 @@
   --warn:#b7791f; --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
   --radius:14px;
 }
+/* 暗い配色。端末（OS）の設定にそのまま合わせる */
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
+  :root{
     --bg:#14161a; --card:#1d2024; --fg:#e8eaed; --muted:#9aa3af;
     --line:#2c3037; --accent:#6f9bff; --accent-weak:#1d2a44;
     --ok:#4ad295; --ok-weak:#17301f; --ng:#ff7b73; --ng-weak:#331a1a;
     --warn:#e0b063; --shadow:none;
   }
-}
-:root[data-theme="dark"]{
-    --bg:#14161a; --card:#1d2024; --fg:#e8eaed; --muted:#9aa3af;
-    --line:#2c3037; --accent:#6f9bff; --accent-weak:#1d2a44;
-    --ok:#4ad295; --ok-weak:#17301f; --ng:#ff7b73; --ng-weak:#331a1a;
-    --warn:#e0b063; --shadow:none;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -113,17 +108,12 @@ label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
 .pos-adv{color:#9a6cc4}
 .pos-prep{color:#6b7280}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .pos-verb{color:#e5a84f}
-  :root:not([data-theme="light"]) .pos-noun{color:#6fa9e0}
-  :root:not([data-theme="light"]) .pos-adj{color:#5cc495}
-  :root:not([data-theme="light"]) .pos-adv{color:#b18ee0}
-  :root:not([data-theme="light"]) .pos-prep{color:#9aa3af}
+  .pos-verb{color:#e5a84f}
+  .pos-noun{color:#6fa9e0}
+  .pos-adj{color:#5cc495}
+  .pos-adv{color:#b18ee0}
+  .pos-prep{color:#9aa3af}
 }
-:root[data-theme="dark"] .pos-verb{color:#e5a84f}
-:root[data-theme="dark"] .pos-noun{color:#6fa9e0}
-:root[data-theme="dark"] .pos-adj{color:#5cc495}
-:root[data-theme="dark"] .pos-adv{color:#b18ee0}
-:root[data-theme="dark"] .pos-prep{color:#9aa3af}
 /* 選択肢の中では、意味のすぐ前に小さく置く */
 .choice .sub .pos{margin-right:6px}
 .count-pill{flex:0 0 auto; font-size:.74rem; font-weight:700; color:var(--ng); background:var(--ng-weak); padding:1px 8px; border-radius:999px}
@@ -132,9 +122,9 @@ label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
 .tabs button[aria-current="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
 .empty{text-align:center; color:var(--muted); padding:26px 0}
 .note{background:var(--accent-weak); border:1px solid transparent; color:var(--fg); border-radius:10px; padding:10px 12px; font-size:.85rem; margin-bottom:12px}
-.hist{font-size:.85rem}
+/* 履歴の表。<table class="hist"> 自身に当てる（.hist table では入れ子の表を指してしまう） */
+.hist{width:100%; border-collapse:collapse; font-size:.85rem}
 .hist td{padding:5px 8px; border-top:1px solid var(--line)}
-.hist table{width:100%; border-collapse:collapse}
 
 /* ------------------------------------------------------------------ 余白など
    JS 側にインラインスタイルを書かずに済むよう、用途の分かる名前で用意する */

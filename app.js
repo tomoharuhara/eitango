@@ -102,50 +102,81 @@
   /* ------------------------------------------------------------ 品詞 */
 
   /*
-   * 4 択は同じ品詞でそろえる。品詞が混ざると、意味の形を見るだけで答えが
-   * 絞れてしまうため（動詞の問題に名詞の選択肢が 3 つ並ぶ、など）。
+   * 品詞は 2 か所で使う。
+   *   1. 単語の前に出す記号（名・動・形・副・前）
+   *   2. 4 択の選択肢をそろえる区分
+   * 2 で品詞が混ざると、意味の形を見るだけで答えが絞れてしまう
+   *（動詞の問題に名詞の選択肢が 3 つ並ぶ、など）。
    *
    * 品詞は意味の書き方から見分ける。
-   *   「〜を」「〜に」で始まる     → 動詞
+   *   「〜を」「〜に」で始まる       → 動詞
    *   「〜な」「〜の」「〜い」で終わる → 形容詞
-   *   「〜に」「〜と」で終わる      → 副詞
-   *   どれでもない                 → 名詞
-   * 動詞はさらに「〜」が付くかどうかで分ける。付く語だけを並べないと、
-   * 「〜」の有無で答えが浮いてしまう。
+   *   「〜に」「〜と」で終わる        → 副詞
+   *   どれでもない                   → 名詞
    *
-   * 前置詞・接続詞（via、despite、whereas など）も意味が「〜」で始まるため、
-   * 形だけでは動詞と区別できない。これは下の表で名指しして別の区分にする。
+   * ただし、この見分け方で合わない語もかなりある。前置詞・接続詞（via、
+   * despite など）は意味が「〜」で始まるので動詞と区別できず、副詞（nearly、
+   * mostly など）は意味が「〜に」で終わらないので名詞に見える。
+   * そういう語は、すぐ下の POS_OVERRIDES に品詞ごとに名指しで書いておく。
    */
+
+  var NOUN = '名詞';
+  var VERB = '動詞';
+  var ADJECTIVE = '形容詞';
+  var ADVERB = '副詞';
+  var PREPOSITION = '前置詞・接続詞';
 
   /**
-   * 英語では形容詞・副詞・名詞・前置詞・接続詞なのに、日本語にすると
-   * 動詞の形になる語。上の規則では拾えないので、ここに書き出しておく。
+   * 規則だけでは正しい品詞にならない語を、品詞ごとに名指しで書き出す。
+   * 意味の書き方（日本語）と英語の品詞がずれる語がこれだけある。
+   * 単語を足したり意味を書き直したときは、ここも見直す。
    */
-  var POS_EXCEPTIONS = {
-    bilingual: '形容詞', brilliant: '形容詞', widespread: '形容詞', visible: '形容詞',
-    controversial: '形容詞', imaginative: '形容詞', misleading: '形容詞', punctual: '形容詞',
-    dizzy: '形容詞', intriguing: '形容詞', perpetual: '形容詞', conspicuous: '形容詞',
-    probably: '副詞', nevertheless: '副詞', altogether: '副詞', utterly: '副詞',
-    necessarily: '副詞',
-    laughter: '名詞', behavior: '名詞', curse: '名詞', junk: '名詞', drought: '名詞',
-    trap: '名詞',
-
-    // 意味が「〜ている」「〜がある」で終わるため、上の規則では形容詞に見えてしまう動詞。
-    tend: '動詞/〜', afford: '動詞/〜', weigh: '動詞/〜', owe: '動詞/〜',
-    resemble: '動詞/〜', deserve: '動詞/〜',
-    // 「〜するのをいやがらない」は副詞の規則に当たるが、willing は形容詞。
-    willing: '形容詞',
-    // nor は接続詞。意味が「〜もまた〜ない」なので副詞に見えてしまう。
-    nor: '前置詞/接続詞',
-
-    // 前置詞・接続詞。意味が「〜」で始まるので形だけでは動詞と見分けがつかない。
+  var POS_OVERRIDES = {};
+  POS_OVERRIDES[ADJECTIVE] = [
+    // 意味が「〜する」「〜な」以外の形で終わるため、動詞や名詞に見える形容詞。
+    'bilingual', 'brilliant', 'widespread', 'visible', 'controversial',
+    'imaginative', 'misleading', 'punctual', 'dizzy', 'intriguing',
+    'perpetual', 'conspicuous', 'loose',
+    // 意味が「〜して」「〜で」で終わる形容詞。副詞にも名詞にも見える。
+    'eager', 'anxious', 'ashamed', 'grateful', 'jealous', 'fond', 'awake',
+    // 「〜するのをいやがらない」は「〜ない」の規則に当たるが、willing は形容詞。
+    'willing',
+    // 「〜したい気がする」は動詞に見えるが、inclined は形容詞。
+    'inclined'
+  ];
+  POS_OVERRIDES[ADVERB] = [
+    // 意味が「〜に」「〜と」で終わらないため、名詞に見える副詞。
+    'probably', 'nevertheless', 'altogether', 'utterly', 'necessarily',
+    'afterward', 'nearly', 'exactly', 'occasionally', 'somehow',
+    'frequently', 'moreover', 'apparently', 'mostly', 'approximately',
+    'overnight', 'lately', 'barely', 'accordingly', 'virtually',
+    'somewhat', 'seemingly', 'thereby', 'namely'
+  ];
+  POS_OVERRIDES[NOUN] = [
+    // 意味が「〜い」「〜ず」「〜な」で終わるため、形容詞や動詞に見える名詞。
+    'laughter', 'behavior', 'curse', 'junk', 'drought', 'trap'
+  ];
+  POS_OVERRIDES[VERB] = [
+    // 意味が「〜ている」「〜がある」で終わるため、形容詞に見える動詞。
+    'tend', 'afford', 'weigh', 'owe', 'resemble', 'deserve'
+  ];
+  POS_OVERRIDES[PREPOSITION] = [
+    // 意味が「〜」で始まるので、形だけでは動詞と見分けがつかない前置詞・接続詞。
     // 「〜を決心する」の中に「〜経由で」が混ざらないよう、名指しで分ける。
-    throughout: '前置詞/接続詞', unlike: '前置詞/接続詞', besides: '前置詞/接続詞',
-    beyond: '前置詞/接続詞', within: '前置詞/接続詞', unless: '前置詞/接続詞',
-    except: '前置詞/接続詞', whether: '前置詞/接続詞', despite: '前置詞/接続詞',
-    beneath: '前置詞/接続詞', whereas: '前置詞/接続詞', via: '前置詞/接続詞',
-    owing: '前置詞/接続詞', lest: '前置詞/接続詞'
-  };
+    'throughout', 'unlike', 'besides', 'beyond', 'within', 'unless',
+    'except', 'whether', 'despite', 'beneath', 'whereas', 'via',
+    'owing', 'lest', 'in spite of',
+    // nor は接続詞。意味が「〜もまた〜ない」なので副詞に見えてしまう。
+    'nor'
+  ];
+
+  /** 単語 -> 品詞。POS_OVERRIDES を引きやすい向きに直したもの。 */
+  var POS_BY_WORD = {};
+  Object.keys(POS_OVERRIDES).forEach(function (pos) {
+    POS_OVERRIDES[pos].forEach(function (en) {
+      POS_BY_WORD[en] = pos;
+    });
+  });
 
   var NOMINALIZER = /(もの|こと|ひと|ところ|とき|人|所|物|事)$/;
   var ADJECTIVE_TAIL = /(できる|ている|がある|のある|にある|に値する)$/;
@@ -156,44 +187,54 @@
     return ja.split('、')[0].replace(/（[^）]*）/g, '');
   }
 
+  /** その単語の品詞。名指しの表が優先で、なければ意味の書き方から見分ける。 */
   function partOfSpeech(word) {
-    if (POS_EXCEPTIONS[word.en]) return POS_EXCEPTIONS[word.en];
+    if (POS_BY_WORD[word.en]) return POS_BY_WORD[word.en];
     var sense = firstSense(word.ja);
-    if (NOMINALIZER.test(sense)) return '名詞';
-    if (sense.indexOf('〜') >= 0 && /ない$/.test(sense)) return '副詞';   // 「めったに〜ない」
-    if (ADJECTIVE_TAIL.test(sense) || /[なのいた]$/.test(sense)) return '形容詞';
-    if (sense.charAt(0) === '〜') return '動詞/〜';
-    if (/[にと]$/.test(sense)) return '副詞';
-    if (VERB_TAIL.test(sense)) return '動詞/自';
-    return '名詞';
+    if (NOMINALIZER.test(sense)) return NOUN;
+    if (sense.indexOf('〜') >= 0 && /ない$/.test(sense)) return ADVERB;   // 「めったに〜ない」
+    if (ADJECTIVE_TAIL.test(sense) || /[なのいた]$/.test(sense)) return ADJECTIVE;
+    if (sense.charAt(0) === '〜') return VERB;
+    if (/[にと]$/.test(sense)) return ADVERB;
+    if (VERB_TAIL.test(sense)) return VERB;
+    return NOUN;
   }
 
-  /** 品詞ごとの単語の添字。選択肢はここから選ぶ。 */
-  var WORDS_BY_POS = {};
-  WORDS.forEach(function (word, index) {
+  /**
+   * 選択肢をそろえるための区分。品詞よりも細かく、動詞だけは意味が「〜」で
+   * 始まるかどうかで分ける。「〜」が付く語と付かない語を混ぜると、
+   * 「〜」の有無だけで答えが浮いてしまうため。
+   */
+  function choiceGroup(word) {
     var pos = partOfSpeech(word);
-    (WORDS_BY_POS[pos] = WORDS_BY_POS[pos] || []).push(index);
+    if (pos !== VERB) return pos;
+    return firstSense(word.ja).charAt(0) === '〜' ? '動詞（〜あり）' : '動詞（〜なし）';
+  }
+
+  /** 区分ごとの単語の添字。ダミーの選択肢はここから選ぶ。 */
+  var WORDS_BY_CHOICE_GROUP = {};
+  WORDS.forEach(function (word, index) {
+    var group = choiceGroup(word);
+    (WORDS_BY_CHOICE_GROUP[group] = WORDS_BY_CHOICE_GROUP[group] || []).push(index);
   });
 
   /*
    * 画面に出す品詞の記号。四角の中に 1 文字で出す。
-   * 選択肢を作るときの区分より粗く、自動詞・他動詞はまとめて「動」にする。
-   * 四角だけ見て分かるよう、マウスを乗せたときの説明には正式な名前を出す。
+   * 四角だけ見て分かるよう、マウスを乗せたときの説明には品詞の名前を出す。
    */
-  var POS_LABELS = {
-    '名詞':         { mark: '名', name: '名詞',          css: 'noun' },
-    '動詞/〜':      { mark: '動', name: '動詞',          css: 'verb' },
-    '動詞/自':      { mark: '動', name: '動詞',          css: 'verb' },
-    '形容詞':       { mark: '形', name: '形容詞',        css: 'adj' },
-    '副詞':         { mark: '副', name: '副詞',          css: 'adv' },
-    '前置詞/接続詞': { mark: '前', name: '前置詞・接続詞', css: 'prep' }
-  };
+  var POS_MARKS = {};
+  POS_MARKS[NOUN] = { mark: '名', css: 'noun' };
+  POS_MARKS[VERB] = { mark: '動', css: 'verb' };
+  POS_MARKS[ADJECTIVE] = { mark: '形', css: 'adj' };
+  POS_MARKS[ADVERB] = { mark: '副', css: 'adv' };
+  POS_MARKS[PREPOSITION] = { mark: '前', css: 'prep' };
 
   /** 単語の品詞を四角囲みの 1 文字で表す。分からないときは何も出さない。 */
   function posTag(word) {
-    var label = POS_LABELS[partOfSpeech(word)];
+    var pos = partOfSpeech(word);
+    var label = POS_MARKS[pos];
     if (!label) return '';
-    return '<span class="pos pos-' + label.css + '" title="' + label.name + '">' +
+    return '<span class="pos pos-' + label.css + '" title="' + pos + '">' +
       label.mark + '</span>';
   }
 
@@ -220,7 +261,7 @@
     }
   })();
 
-  var saveFailed = false;   // 一度でも保存に失敗したか
+  var saveFailed = false;   // 直前の保存に失敗したか（成功すると false に戻る）
 
   function progressKey(email) {
     return 'vocab.progress.' + email;
@@ -304,47 +345,46 @@
     return format === ASK_MEANING ? word.ja : word.en;
   }
 
+  var MAX_PICK_ATTEMPTS = 800;   // ダミーを引き直す上限。埋まらないまま延々と回さないための歯止め
+
+  /** すべての単語の添字。区分の中だけで選択肢が埋まらなかったときの引き直し先。 */
+  var ALL_WORD_INDEXES = WORDS.map(function (word, index) { return index; });
+
+  /**
+   * ダミーの選択肢を、4 つそろうまで pool（単語の添字の配列）から引いて picked に足す。
+   * すでに使った文字列と、語義の頭が同じものは選ばない。
+   * 「〜を捨てる」が 2 つ並ぶと、正解が 2 つあることになってしまうため。
+   */
+  function addDummyChoices(picked, pool, format, used) {
+    var attempts = 0;
+    while (picked.length < CHOICE_COUNT && attempts++ < MAX_PICK_ATTEMPTS) {
+      var candidate = pool[Math.floor(Math.random() * pool.length)];
+      var text = choiceTextOf(WORDS[candidate], format);
+      var sense = firstSense(WORDS[candidate].ja);
+      if (used.texts[text] || used.senses[sense]) continue;
+      used.texts[text] = true;
+      used.senses[sense] = true;
+      picked.push(candidate);
+    }
+  }
+
   /**
    * 1 問作る。ダミーの選択肢だけをランダムに選ぶ。
    * 出題そのものの順番は単語の番号順のままで、ここでは入れ替えない。
    */
   function createQuestion(wordIndex, format) {
     var answer = WORDS[wordIndex];
-    var sameParts = WORDS_BY_POS[partOfSpeech(answer)];
 
-    // 同じ文字列はもちろん、語義の頭が同じものも避ける。
-    // 「〜を捨てる」が 2 つ並ぶと、正解が 2 つあることになってしまう。
-    var usedTexts = {};
-    var usedSenses = {};
-    usedTexts[choiceTextOf(answer, format)] = true;
-    usedSenses[firstSense(answer.ja)] = true;
+    // 正解の単語も「使った」側に入れておく。これでダミーとして引き直されない。
+    var used = { texts: {}, senses: {} };
+    used.texts[choiceTextOf(answer, format)] = true;
+    used.senses[firstSense(answer.ja)] = true;
 
     var pickedIndexes = [wordIndex];
-    var attempts = 0;
-    while (pickedIndexes.length < CHOICE_COUNT && attempts++ < 800) {
-      var candidate = sameParts[Math.floor(Math.random() * sameParts.length)];
-      if (candidate === wordIndex) continue;
-      var text = choiceTextOf(WORDS[candidate], format);
-      var sense = firstSense(WORDS[candidate].ja);
-      if (usedTexts[text] || usedSenses[sense]) continue;
-      usedTexts[text] = true;
-      usedSenses[sense] = true;
-      pickedIndexes.push(candidate);
-    }
-
+    addDummyChoices(pickedIndexes, WORDS_BY_CHOICE_GROUP[choiceGroup(answer)], format, used);
     // 区分の語数が足りず 4 つ埋まらなかったときは、全体から埋める。
     // 選択肢が 3 つしかない問題が出るよりはましなので。
-    attempts = 0;
-    while (pickedIndexes.length < CHOICE_COUNT && attempts++ < 800) {
-      var spare = Math.floor(Math.random() * WORDS.length);
-      if (spare === wordIndex) continue;
-      var spareText = choiceTextOf(WORDS[spare], format);
-      var spareSense = firstSense(WORDS[spare].ja);
-      if (usedTexts[spareText] || usedSenses[spareSense]) continue;
-      usedTexts[spareText] = true;
-      usedSenses[spareSense] = true;
-      pickedIndexes.push(spare);
-    }
+    addDummyChoices(pickedIndexes, ALL_WORD_INDEXES, format, used);
     shuffle(pickedIndexes);
 
     return {
@@ -807,7 +847,7 @@
       '</div>' +
       startButtonOrFinishedNote(day, nextTestId) +
       freeTestsCard(day) +
-      statsCard(day);
+      statsCard();
 
     bindNav();
     onClickWithValue('data-start', function (testId) {
@@ -1272,8 +1312,9 @@
     var day = progress.days[date];
     var cells = TEST_IDS.map(function (testId) {
       var test = day.tests[testId];
-      if (!test || test.skipped) return test ? 'skip' : '—';
-      if (test.noMistakes) return '—';
+      if (!test) return '—';                  // その日はまだ作られていない
+      if (test.skipped) return 'skip';        // 前日の記録がなく、受けずに済んだ
+      if (test.noMistakes) return '—';        // 間違いがなく、出題するものがなかった
       var score = testScore(test);
       return (test.finished ? '' : '…') + score.correct + '/' + score.total;
     });
